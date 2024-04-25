@@ -1,0 +1,121 @@
+# Expressions are a built-in part of the syntax
+
+$f(x) = \frac{1}{2} \cdot x^2$->fn
+
+(f(x) = 1/2 * x^2)->fn
+
+f = parabola(
+  vertex = <0, 0>,
+  A = 1/2,
+)->fn
+
+df/dx # New expression
+f'(x) # New function
+
+Ways of thinking about a parabola:
+- Function that takes inputs and gives outputs (must be a vertical parabola)
+  - Over real numbers
+  - Over complex numbers
+  - Over whole numbers
+- Equation of x and y (in many different possible forms) – think relationship, not function
+- Geometric shape defined by a focus and directrix
+  - Directrix is a line, could be defined many different ways
+- Shape defined as transformation of some other shape–maybe a different parabola
+- A set of points (infinitely many, so you can't list them all, but you can still work with them as a set)
+- etc.
+
+What you really want is an insanely good system for coercing things between different types.
+- You won't know if the coercion is possible at build time–only at run time
+
+When defining a struct, only include the information you actually know and care about,
+without worrying about how it will interact with other structs–we'll define conversions later
+
+SlopeInterceptLine <-> m*x + b
+struct SlopeInterceptLine {
+  m: Number
+  b: Number
+}
+
+struct TwoPointLine {
+  a: Number[2]
+  b: Number[2]
+}
+
+struct PointSlopeLine {
+  point: Number[2]
+  m: Number
+}
+
+TwoPointLine -> SlopeInterceptLine {
+  m: (b.y - a.y) / (b.x - a.x) # This errors when b.x = a.x
+  b: a.y - m * a.x
+}
+
+People might define two different conversions between the same two types. In this case,
+there is an infinite set of possible solutions. But in general, there might not even be
+such a thing as a right or wrong conversion.
+
+SlopeInterceptLine -> TwoPointLine {
+  a: <0, b>
+  b: <1, m + b>
+}
+
+SlopeInterceptLine -> TwoPointLine {
+  a: <69, b>
+  b: <70, m + b>
+}
+
+The best conversion might also depend on context. For example, you might want to sync
+two types with each other in a way that minimizes the changes being made (and "minimize"
+could mean a lot of different things; there isn't one right kind of change to minimize,
+it depends on the context).
+
+# When converting between types, you most likely want an initial conversion and
+# then progressive updates. `convert` gives you a way to do the initial conversion;
+# `sync` gives you a way to do the progressive updates.
+sync SlopeInterceptLine -> TwoPointLine {
+  # a and b have already been set (:) to the current values. They can be accessed using .a and .b
+  # In this case, our strategy will be to keep the x values the same and only update y
+  a.y: m * .a.x + b
+  b.y: m * .b.x + b
+}
+
+SimplifiedParabola <-> a*x^2 + b*x + c
+struct SimplifiedParabola {
+  a: Number # What actually is a number?
+  b: Number
+  c: Number
+}
+
+VertexParabola <-> a*(x - v.x)^2 + v.y
+struct VertexParabola {
+  vertex: Number[2]
+  a: Number
+}
+
+struct FocusDirectrixParabola {
+  focus: Number[2]
+  directrix: -> Line # Any type that can be coerced to a line
+}
+
+# These conversions are automatically differentiable
+SimplifiedParabola -> VertexParabola {
+  a: a
+
+  h = -b / (2 * a)
+  k = c - a * h^2
+
+  vertex: <h, k>
+}
+
+VertexParabola -> SimplifiedParabola {
+  <h, k> = vertex
+  
+  a: a
+  b: -2 * a * h
+  c: a * h^2 + k
+}
+
+TODO: I think the two-way sync syntax is confusing because it appears to be completely
+symmetric, but it's not. The second struct is  *initally* updated to match the first.
+(After initialization, the syncing is symmetric in both directions.)
