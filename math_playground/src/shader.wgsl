@@ -6,37 +6,37 @@ struct TimeUniform {
 @group(0) @binding(0)
 var<uniform> time: TimeUniform;
 
+struct CameraUniform {
+    view_proj: mat4x4<f32>,
+};
+
+@group(1) @binding(0)
+var<uniform> camera: CameraUniform;
+
+struct VertexInput {
+    @builtin(vertex_index) index: u32,
+    @location(0) position: vec3<f32>,
+    @location(1) velocity: vec3<f32>,
+    @location(2) color: vec3<f32>,
+};
+
 struct VertexOutput {
     @builtin(position) clip_pos: vec4<f32>,
-    @location(0) vert_pos: vec3<f32>,
+    @location(0) color: vec3<f32>,
 };
 
 @vertex
-fn vs_main(
-    @builtin(vertex_index) in_vertex_index: u32,
-) -> VertexOutput {
+fn vs_main(model: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-
-    // Make an equilateral triangle
-    let angle = f32(in_vertex_index) * radians(120.0) + time.time * radians(180.0);
-    let x = cos(angle) * 0.5;
-    let y = sin(angle) * 0.5;
-
-    let dir = 0.25 * time.time * radians(360.0);
-    let len = sin(NUMBER * dir + radians(180.0)) * 0.25;
-    out.vert_pos = vec3<f32>(x, y, 0.0) + len * vec3<f32>(cos(dir), sin(dir), 0.0);
-    out.clip_pos = vec4<f32>(out.vert_pos, 1.0);
+    out.clip_pos = camera.view_proj * vec4<f32>(model.position, 1.0);
+    out.color = model.color;
     return out;
 }
 
 // Fragment shader
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let pos = in.vert_pos.xy * 0.5 + vec2<f32>(0.5, 0.5);
-    let dist = length(pos - vec2<f32>(0.5, 0.5));
-    let angle = atan2(pos.y - 0.5, pos.x - 0.5);
-    let hue = angle / radians(360.0) + pow(2.0, dist * 5.0) - time.time;
-    let color = hsv2rgb(vec3<f32>(hue, 1.0, 1.0));
+    let color = in.color;
     return vec4<f32>(color, 1.0);
 }
 

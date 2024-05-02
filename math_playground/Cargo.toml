@@ -22,6 +22,7 @@ pollster = "0.3"
 bytemuck = { version = "1.12", features = ["derive"] }
 # Enables measuring time both natively and with WASM (std::time::Instant only works natively)
 instant = { version = "0.1", features = ["wasm-bindgen"] }
+nalgebra = "0.32"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.6"
